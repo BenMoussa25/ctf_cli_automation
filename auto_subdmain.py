@@ -23,6 +23,18 @@ server {{
 }}
 """
 
+def normalize_subdomain(subdomain):
+    # Convert to lowercase
+    subdomain = subdomain.lower()
+    # Replace spaces, underscores and any non a-z0-9 with "-"
+    subdomain = re.sub(r"[ _]+", "-", subdomain)
+    subdomain = re.sub(r"[^a-z0-9-]", "-", subdomain)
+    # Replace multiple dashes with a single dash
+    subdomain = re.sub(r"-+", "-", subdomain)
+    # Trim leading/trailing dashes
+    subdomain = subdomain.strip("-")
+    return subdomain
+
 def extract_port_from_docker_compose(compose_path):
     with open(compose_path, 'r') as f:
         compose_data = yaml.safe_load(f)
@@ -30,7 +42,6 @@ def extract_port_from_docker_compose(compose_path):
     for service in services.values():
         ports = service.get('ports', [])
         for port in ports:
-            # format: "8080:80"
             match = re.match(r'(\d+):\d+', str(port))
             if match:
                 return match.group(1)
@@ -42,11 +53,12 @@ def extract_subdomain_from_challenge_yaml(yaml_path):
     return data.get("name", None)
 
 def generate_nginx_conf(subdomain, port, output_dir="/etc/nginx/sites-enabled"):
-    conf = NGINX_TEMPLATE.format(subdomain=subdomain.lower(), port=port)
-    file_path = os.path.join(output_dir, f"{subdomain.lower()}.espark.tn")
+    clean_subdomain = normalize_subdomain(subdomain)
+    conf = NGINX_TEMPLATE.format(subdomain=clean_subdomain, port=port)
+    file_path = os.path.join(output_dir, f"{clean_subdomain}.espark.tn")
     with open(file_path, "w") as f:
         f.write(conf)
-    print(f"[+] NGINX config written for {subdomain} at port {port}")
+    print(f"[+] NGINX config written for {clean_subdomain} at port {port}")
 
 def scan_tasks(root_dir):
     for task_name in os.listdir(root_dir):
