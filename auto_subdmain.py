@@ -23,6 +23,23 @@ server {{
 }}
 """
 
+def append_link_to_description(yaml_path, subdomain):
+    with open(yaml_path, 'r', encoding='utf-8') as f:
+        data = yaml.safe_load(f)
+
+    link_line = f"\nLink: https://{subdomain}.espark.tn"
+
+    if "description" in data:
+        if link_line.strip() not in data["description"]:
+            data["description"] += link_line
+    else:
+        data["description"] = link_line.strip()
+
+    with open(yaml_path, 'w', encoding='utf-8') as f:
+        yaml.dump(data, f, sort_keys=False, allow_unicode=True)
+    print(f"[+] Link added to challenge description in {os.path.basename(yaml_path)}")
+
+
 def normalize_subdomain(subdomain):
     # Convert to lowercase
     subdomain = subdomain.lower()
@@ -75,6 +92,7 @@ def scan_tasks(root_dir):
 
             if port:
                 generate_nginx_conf(subdomain, port)
+                append_link_to_description(yaml_path, normalize_subdomain(subdomain))
             else:
                 print(f"[!] No valid port found for {task_name}")
         else:
